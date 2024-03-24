@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NZWalks.API.Data;
 using NZWalks.API.Mappers;
+using NZWalks.API.Middlewares;
 using NZWalks.API.Repositories;
+using Serilog;
 using System.Text;
 
 namespace NZWalks.API
@@ -37,6 +39,17 @@ namespace NZWalks.API
             //Inject Automappers service
             builder.Services.AddAutoMapper(typeof(AutoMappersProfiles));
 
+            //injecting Serilog Configuration
+             var logger=new LoggerConfiguration()
+                .WriteTo.Console()
+                .WriteTo.File("Logs/NZWalks_Log.txt",rollingInterval:RollingInterval.Minute)
+                .MinimumLevel.Warning()
+                .CreateLogger();
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSerilog(logger);
+
+
             //Injecting Identity Services
             builder.Services.AddIdentityCore<IdentityUser>()
                 .AddRoles<IdentityRole>()
@@ -67,6 +80,17 @@ namespace NZWalks.API
                     IssuerSigningKey=new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
                 });
 
+            //Configuring the CORS Services
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("MyCorsPolicy", builder =>
+                {
+                    builder.WithOrigins("https://localhost:7190/") // Add allowed origins here
+                           .AllowAnyMethod()
+                           .AllowAnyHeader();
+                });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -75,6 +99,9 @@ namespace NZWalks.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.UseCors();
+
+            app.UseMiddleware<ExceptionHandlerMiddleware>();
 
             app.UseHttpsRedirection();
 

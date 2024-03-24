@@ -30,6 +30,9 @@ namespace NZWalks.API.Controllers
         {
             //Get the Domain Data from the Repository
             var walkDomain=await walkRepository.GetAllAsync(filterOn,filterQuery,sortBy,isAscending ?? true);
+
+            //Throw Custom Exception
+            throw new Exception("This is custom Exception");
             //Convert the Domain Data into Dto Data using Automapper and return to the client
             var walkDto=mapper.Map<List<WalkDto>>(walkDomain);
             return Ok(walkDto);
